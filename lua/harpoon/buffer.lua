@@ -94,7 +94,7 @@ function M.setup_autocmds_and_keymaps(bufnr)
         buffer = bufnr,
         callback = function()
             require("harpoon").logger:log("toggle by BufLeave")
-            -- require("harpoon").ui:toggle_quick_menu()
+            require("harpoon").ui:save()
         end,
     })
 end

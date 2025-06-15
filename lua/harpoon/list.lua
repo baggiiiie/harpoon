@@ -1,6 +1,7 @@
 local Logger = require("harpoon.logger")
 local utils = require("harpoon.utils")
 local Extensions = require("harpoon.extensions")
+local HarpoonUI = require("harpoon.ui")
 
 local function guess_length(arr)
     local last_known = #arr
@@ -155,6 +156,7 @@ function HarpoonList:add(item)
             Extensions.event_names.ADD,
             { list = self, item = item, idx = idx }
         )
+        HarpoonUI:refresh(self:display())
     end
 
     return self
@@ -288,11 +290,14 @@ end
 function HarpoonList:select(index, options)
     local item = self.items[index]
     if item or self.config.select_with_nil then
+        print("im selecting " .. index)
         Extensions.extensions:emit(
             Extensions.event_names.SELECT,
             { list = self, item = item, idx = index }
         )
         self.config.select(item, self, options)
+    else
+        print(index .. " does not exist")
     end
 end
 

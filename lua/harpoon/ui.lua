@@ -96,17 +96,21 @@ function HarpoonUI:_create_window(toggle_opts)
     end
 
     local height = toggle_opts.height_in_lines or 8 -- 8 lines is default height
+    width = math.floor(vim.o.columns * 0.2)
     local bufnr = vim.api.nvim_create_buf(false, true)
-    local win_id = vim.api.nvim_open_win(bufnr, true, {
-        relative = "editor",
-        title = toggle_opts.title or "Harpoon",
-        title_pos = toggle_opts.title_pos or "left",
-        row = math.floor(((vim.o.lines - height) / 2) - 1),
-        col = math.floor((vim.o.columns - width) / 2),
+
+    local win_id = vim.api.nvim_open_win(bufnr, false, {
+        -- relative = "editor",
+        -- title = toggle_opts.title or "Harpoon",
+        -- title_pos = toggle_opts.title_pos or "left",
+        -- row = math.floor(((vim.o.lines - height) / 2) - 1),
+        -- col = math.floor((vim.o.columns - width) / 2),
+        split = "left",
+        win = -1,
         width = width,
-        height = height,
+        -- height = height,
         style = "minimal",
-        border = toggle_opts.border or "single",
+        -- border = toggle_opts.border or "single",
     })
 
     if win_id == 0 then
@@ -188,7 +192,7 @@ function HarpoonUI:select_menu_item(options)
     )
 
     list = self.active_list
-    self:close_menu()
+    -- self:close_menu()
     list:select(idx, options)
 end
 
@@ -205,6 +209,20 @@ end
 ---@param settings HarpoonSettings
 function HarpoonUI:configure(settings)
     self.settings = settings
+end
+
+function HarpoonUI:refresh(contents)
+    local pattern = ".*__harpoon.*" -- Lua pattern, not full regex
+
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        local name = vim.api.nvim_buf_get_name(buf)
+        if name:match(pattern) then
+            Logger:log("ui#refresh, buffer number: " .. buf)
+            vim.api.nvim_buf_set_lines(buf, 0, -1, false, contents)
+        else
+            print("no harpoon menu found")
+        end
+    end
 end
 
 return HarpoonUI

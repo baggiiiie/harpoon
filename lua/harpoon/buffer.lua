@@ -89,6 +89,17 @@ function M.setup_autocmds_and_keymaps(bufnr)
         end,
     })
 
+    vim.api.nvim_create_autocmd({ "QuitPre", "VimLeave", "VimLeavePre" }, {
+        -- group = HarpoonGroup,
+        -- buffer = bufnr,
+        callback = function()
+            require("harpoon").logger:log("toggle by BufLeave")
+            -- require("harpoon").ui:close_menu()
+            bufnr = M.get_harpoon_bufnr()
+            vim.api.nvim_buf_delete(bufnr, { force = true })
+        end,
+    })
+
     vim.api.nvim_create_autocmd({ "BufLeave" }, {
         group = HarpoonGroup,
         buffer = bufnr,

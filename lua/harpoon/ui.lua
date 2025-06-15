@@ -62,6 +62,9 @@ function HarpoonUI:close_menu()
     )
 
     if self.bufnr ~= nil and vim.api.nvim_buf_is_valid(self.bufnr) then
+        vim.api.nvim_buf_call(self.bufnr, function()
+            vim.cmd("w")
+        end)
         vim.api.nvim_buf_delete(self.bufnr, { force = true })
     end
 
@@ -193,6 +196,7 @@ function HarpoonUI:select_menu_item(options)
 
     list = self.active_list
     -- self:close_menu()
+    vim.cmd("wincmd p")
     list:select(idx, options)
 end
 

@@ -24,7 +24,8 @@ end
 function M.run_toggle_command(key)
     local harpoon = require("harpoon")
     harpoon.logger:log("toggle by keymap '" .. key .. "'")
-    harpoon.ui:toggle_quick_menu()
+    vim.cmd("wincmd p")
+    -- harpoon.ui:toggle_quick_menu()
 end
 
 ---@param bufnr number
@@ -68,7 +69,8 @@ function M.setup_autocmds_and_keymaps(bufnr)
             require("harpoon").ui:save()
             vim.schedule(function()
                 require("harpoon").logger:log("toggle by BufWriteCmd")
-                require("harpoon").ui:toggle_quick_menu()
+                vim.cmd("wincmd p")
+                -- require("harpoon").ui:toggle_quick_menu()
             end)
         end,
     })

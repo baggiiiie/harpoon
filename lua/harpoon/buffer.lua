@@ -21,9 +21,23 @@ function M.run_select_command()
     harpoon.ui:select_menu_item()
 end
 
+function M.get_harpoon_bufnr()
+    local pattern = ".*__harpoon.*" -- Lua pattern, not full regex
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        local name = vim.api.nvim_buf_get_name(buf)
+        if name:match(pattern) then
+            require("harpoon").logger:log("ui#refresh, buffer number: " .. buf)
+            return buf
+        else
+            print("no harpoon menu found")
+        end
+    end
+end
+
 function M.run_toggle_command(key)
     local harpoon = require("harpoon")
     harpoon.logger:log("toggle by keymap '" .. key .. "'")
+    vim.cmd("w")
     vim.cmd("wincmd p")
     -- harpoon.ui:toggle_quick_menu()
 end

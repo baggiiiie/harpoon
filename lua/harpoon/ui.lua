@@ -216,17 +216,8 @@ function HarpoonUI:configure(settings)
 end
 
 function HarpoonUI:refresh(contents)
-    local pattern = ".*__harpoon.*" -- Lua pattern, not full regex
-
-    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-        local name = vim.api.nvim_buf_get_name(buf)
-        if name:match(pattern) then
-            Logger:log("ui#refresh, buffer number: " .. buf)
-            vim.api.nvim_buf_set_lines(buf, 0, -1, false, contents)
-        else
-            print("no harpoon menu found")
-        end
-    end
+    local buf = require("harpoon.buffer"):get_harpoon_bufnr()
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, contents)
 end
 
 return HarpoonUI

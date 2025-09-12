@@ -156,7 +156,7 @@ function HarpoonList:add(item)
             Extensions.event_names.ADD,
             { list = self, item = item, idx = idx }
         )
-        HarpoonUI:refresh(self:display())
+        require("harpoon").ui:refresh(self:display())
     end
 
     return self
@@ -200,6 +200,7 @@ function HarpoonList:remove(item)
             break
         end
     end
+    require("harpoon").ui:refresh(self:display())
     return self
 end
 

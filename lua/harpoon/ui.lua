@@ -215,9 +215,14 @@ function HarpoonUI:configure(settings)
     self.settings = settings
 end
 
+---@param contents string[]
 function HarpoonUI:refresh(contents)
-    local buf = require("harpoon.buffer"):get_harpoon_bufnr()
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, contents)
+    -- local buf = require("harpoon.buffer"):get_harpoon_bufnr()
+    if self.bufnr == nil or not vim.api.nvim_buf_is_valid(self.bufnr) then
+        print("ui#refresh no valid buffer to refresh")
+        return
+    end
+    vim.api.nvim_buf_set_lines(self.bufnr, 0, -1, false, contents)
 end
 
 return HarpoonUI

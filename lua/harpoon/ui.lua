@@ -84,27 +84,29 @@ end
 ---@param toggle_opts HarpoonToggleOptions
 ---@return number,number
 function HarpoonUI:_create_window(toggle_opts)
-    local win = vim.api.nvim_list_uis()
+    -- local win = vim.api.nvim_list_uis()
 
-    local width = toggle_opts.ui_fallback_width
-
-    if #win > 0 then
-        -- no ackshual reason for 0.62569, just looks complicated, and i want
-        -- to make my boss think i am smart
-        width = math.floor(win[1].width * toggle_opts.ui_width_ratio)
-    end
-
-    if toggle_opts.ui_max_width and width > toggle_opts.ui_max_width then
-        width = toggle_opts.ui_max_width
-    end
-
+    -- if #win > 0 then
+    --     -- no ackshual reason for 0.62569, just looks complicated, and i want
+    --     -- to make my boss think i am smart
+    --     width = math.floor(win[1].width * toggle_opts.ui_width_ratio)
+    -- end
+    --
+    -- if toggle_opts.ui_max_width and width > toggle_opts.ui_max_width then
+    --     width = toggle_opts.ui_max_width
+    -- end
+    --
     -- NOTE: no need height for our harpoon menu
     -- local height = toggle_opts.height_in_lines or 8 -- 8 lines is default height
-    width = math.floor(vim.o.columns * 0.2)
+
     -- NOTE: setting second option to true makes it a scratch buffer
     -- so neovim won't prompt to save it
     local bufnr = vim.api.nvim_create_buf(false, true)
     self.bufnr = bufnr
+
+    local width = math.min(math.floor(vim.o.columns * 0.2), 50)
+    width = math.max(width, 20)
+    self.width = width
 
     local win_id = vim.api.nvim_open_win(bufnr, true, {
         -- relative = "editor",
@@ -220,12 +222,34 @@ end
 
 ---@param contents string[]
 function HarpoonUI:refresh(contents)
-    -- local buf = require("harpoon.buffer"):get_harpoon_bufnr()
     if self.bufnr == nil or not vim.api.nvim_buf_is_valid(self.bufnr) then
-        print("ui#refresh no valid buffer to refresh")
         return
     end
-    vim.api.nvim_buf_set_lines(self.bufnr, 0, -1, false, contents)
+    vim.api.nvim_buf_set_lines(self.bufnr, 0, -1, true, contents)
+end
+
+---@param contents string[]
+---@return string[]
+function HarpoonUI:truncate_content(contents)
+    -- TODO: when selecting from Harpoon menu, it reads the line in the buffer
+    -- if we wanna show truncated lines, we need to separate display from actual
+    -- see HarpoonUI:select_menu_item
+    local function truncate_left(str, width)
+        if string.len(str) <= width then
+            return str
+        end
+        -- Use a single-character ellipsis to indicate truncation.
+        local ellipsis = ".."
+        local tail = str:sub(-(width - 20))
+        return ellipsis .. tail
+    end
+
+    local win_width = require("harpoon").ui.width
+    local adjusted = {}
+    for i = 1, #contents do
+        adjusted[i] = truncate_left(contents[i], win_width)
+    end
+    return adjusted
 end
 
 return HarpoonUI

@@ -291,7 +291,6 @@ end
 function HarpoonList:select(index, options)
     local item = self.items[index]
     if item or self.config.select_with_nil then
-        print("im selecting " .. index)
         Extensions.extensions:emit(
             Extensions.event_names.SELECT,
             { list = self, item = item, idx = index }

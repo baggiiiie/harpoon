@@ -62,9 +62,9 @@ function HarpoonUI:close_menu()
     )
 
     if self.bufnr ~= nil and vim.api.nvim_buf_is_valid(self.bufnr) then
-        vim.api.nvim_buf_call(self.bufnr, function()
-            vim.cmd("w")
-        end)
+        -- vim.api.nvim_buf_call(self.bufnr, function()
+        --     vim.cmd("w")
+        -- end)
         vim.api.nvim_buf_delete(self.bufnr, { force = true })
     end
 
@@ -98,11 +98,15 @@ function HarpoonUI:_create_window(toggle_opts)
         width = toggle_opts.ui_max_width
     end
 
-    local height = toggle_opts.height_in_lines or 8 -- 8 lines is default height
+    -- NOTE: no need height for our harpoon menu
+    -- local height = toggle_opts.height_in_lines or 8 -- 8 lines is default height
     width = math.floor(vim.o.columns * 0.2)
+    -- NOTE: setting second option to true makes it a scratch buffer
+    -- so neovim won't prompt to save it
     local bufnr = vim.api.nvim_create_buf(false, true)
+    self.bufnr = bufnr
 
-    local win_id = vim.api.nvim_open_win(bufnr, false, {
+    local win_id = vim.api.nvim_open_win(bufnr, true, {
         -- relative = "editor",
         -- title = toggle_opts.title or "Harpoon",
         -- title_pos = toggle_opts.title_pos or "left",
@@ -120,7 +124,6 @@ function HarpoonUI:_create_window(toggle_opts)
         Logger:log(
             "ui#_create_window failed to create window, win_id returned 0"
         )
-        self.bufnr = bufnr
         self:close_menu()
         error("Failed to create window")
     end

@@ -21,23 +21,10 @@ function M.run_select_command()
     harpoon.ui:select_menu_item()
 end
 
-function M.get_harpoon_bufnr()
-    local pattern = ".*__harpoon.*" -- Lua pattern, not full regex
-    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-        local name = vim.api.nvim_buf_get_name(buf)
-        if name:match(pattern) then
-            require("harpoon").logger:log("ui#refresh, buffer number: " .. buf)
-            return buf
-        else
-            print("no harpoon menu found")
-        end
-    end
-end
-
 function M.run_toggle_command(key)
     local harpoon = require("harpoon")
     harpoon.logger:log("toggle by keymap '" .. key .. "'")
-    vim.cmd("w")
+    harpoon.ui:save()
     vim.cmd("wincmd p")
     -- harpoon.ui:toggle_quick_menu()
 end
@@ -63,9 +50,11 @@ function M.setup_autocmds_and_keymaps(bufnr)
     vim.api.nvim_set_option_value("filetype", "harpoon", {
         buf = bufnr,
     })
-    vim.api.nvim_set_option_value("buftype", "acwrite", { buf = bufnr })
+    -- NOTE: acwrite is causing error upon `:qa`
+    -- vim.api.nvim_set_option_value("buftype", "acwrite", { buf = bufnr })
     vim.keymap.set("n", "q", function()
-        M.run_toggle_command("q")
+        require("harpoon").ui:save()
+        vim.cmd("q")
     end, { buffer = bufnr, silent = true })
 
     vim.keymap.set("n", "<Esc>", function()
@@ -76,27 +65,13 @@ function M.setup_autocmds_and_keymaps(bufnr)
         M.run_select_command()
     end, { buffer = bufnr, silent = true })
 
-    vim.api.nvim_create_autocmd({ "BufWriteCmd" }, {
+    vim.api.nvim_create_autocmd({ "QuitPre", "VimLeave", "ExitPre" }, {
         group = HarpoonGroup,
         buffer = bufnr,
         callback = function()
-            require("harpoon").ui:save()
-            vim.schedule(function()
-                require("harpoon").logger:log("toggle by BufWriteCmd")
-                vim.cmd("wincmd p")
-                -- require("harpoon").ui:toggle_quick_menu()
-            end)
-        end,
-    })
-
-    vim.api.nvim_create_autocmd({ "QuitPre", "VimLeave", "VimLeavePre" }, {
-        -- group = HarpoonGroup,
-        -- buffer = bufnr,
-        callback = function()
             require("harpoon").logger:log("toggle by BufLeave")
-            -- require("harpoon").ui:close_menu()
-            bufnr = M.get_harpoon_bufnr()
-            vim.api.nvim_buf_delete(bufnr, { force = true })
+            require("harpoon").ui:save()
+            require("harpoon").ui:close_menu()
         end,
     })
 
@@ -111,6 +86,7 @@ function M.setup_autocmds_and_keymaps(bufnr)
 end
 
 ---@param bufnr number
+---@return table
 function M.get_contents(bufnr)
     local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, true)
     local indices = {}
@@ -122,6 +98,8 @@ function M.get_contents(bufnr)
     return indices
 end
 
+---@param bufnr number
+---@param contents string[]
 function M.set_contents(bufnr, contents)
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, true, contents)
 end

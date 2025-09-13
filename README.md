@@ -15,12 +15,9 @@
 - [The Solutions](#-the-solutions)
 - [Installation](#-installation)
 - [Getting Started](#-getting-started)
-- [API](#-api)
-  - [Config](#config)
-  - [Settings](#settings)
-- [Contribution](#-contribution)
-- [Social](#-social)
-- [Note to legacy Harpoon 1 users](#-note-to-legacy-harpoon-1-users)
+  - [Basic Setup](#basic-setup)
+  - [Notes](#notes)
+- [Others](#-others)
 
 ## ⇁ The Problems
 
@@ -91,6 +88,7 @@ vim.keymap.set("n", "<C-N>", function() harpoon:list():next() end)
   - `q` to close the menu
   - `<esc>` to return to the previous window
 
-### Others
+## Others
 
-Regarding other configs, see [ThePrimeagen/harpoon](https://github.com/ThePrimeagen/harpoon)
+- Regarding other configs, see [ThePrimeagen/harpoon](https://github.com/ThePrimeagen/harpoon)
+- The repo has broken unit tests, to be fixed..

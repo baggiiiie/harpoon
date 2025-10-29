@@ -1,7 +1,6 @@
 local Logger = require("harpoon.logger")
 local utils = require("harpoon.utils")
 local Extensions = require("harpoon.extensions")
-local HarpoonUI = require("harpoon.ui")
 
 local function guess_length(arr)
     local last_known = #arr

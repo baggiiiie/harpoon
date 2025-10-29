@@ -250,28 +250,28 @@ function HarpoonUI:refresh(contents)
     vim.api.nvim_buf_set_lines(self.bufnr, 0, -1, true, contents)
 end
 
----@param contents string[]
----@return string[]
-function HarpoonUI:truncate_content(contents)
-    -- TODO: when selecting from Harpoon menu, it reads the line in the buffer
-    -- if we wanna show truncated lines, we need to separate display from actual
-    -- see HarpoonUI:select_menu_item
-    local function truncate_left(str, width)
-        if string.len(str) <= width then
-            return str
-        end
-        -- Use a single-character ellipsis to indicate truncation.
-        local ellipsis = ".."
-        local tail = str:sub(-(width - 20))
-        return ellipsis .. tail
-    end
-
-    local win_width = require("harpoon").ui.width
-    local adjusted = {}
-    for i = 1, #contents do
-        adjusted[i] = truncate_left(contents[i], win_width)
-    end
-    return adjusted
-end
-
+-- ---@param contents string[]
+-- ---@return string[]
+-- function HarpoonUI:truncate_content(contents)
+--     -- TODO: when selecting from Harpoon menu, it reads the line in the buffer
+--     -- if we wanna show truncated lines, we need to separate display from actual
+--     -- see HarpoonUI:select_menu_item
+--     local function truncate_left(str, width)
+--         if string.len(str) <= width then
+--             return str
+--         end
+--         -- Use a single-character ellipsis to indicate truncation.
+--         local ellipsis = ".."
+--         local tail = str:sub(-(width - 20))
+--         return ellipsis .. tail
+--     end
+--
+--     local win_width = require("harpoon").ui.width
+--     local adjusted = {}
+--     for i = 1, #contents do
+--         adjusted[i] = truncate_left(contents[i], win_width)
+--     end
+--     return adjusted
+-- end
+--
 return HarpoonUI

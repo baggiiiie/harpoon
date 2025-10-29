@@ -90,14 +90,29 @@ You can configure the UI style to choose between the sidebar (new) and popup (or
 local harpoon = require("harpoon")
 harpoon:setup({
     settings = {
-        ui_style = "sidebar", -- "sidebar" (default) or "popup"
+        ui_style = "auto", -- "auto" (default), "sidebar", or "popup"
+        ui_auto_threshold = 120, -- minimum window width for sidebar in auto mode (default: 120)
     }
 })
 ```
 
 **UI Styles:**
-- `"sidebar"` (default): Shows harpoon menu as a persistent left-side buffer that acts as padding and centers your main screen
-- `"popup"`: Original popup window that appears in the center and closes when you select a file
+- `"auto"` (default): Automatically detects window size and uses sidebar for wide windows (≥120 columns) or popup for narrow windows
+- `"sidebar"`: Always shows harpoon menu as a persistent left-side buffer that acts as padding and centers your main screen
+- `"popup"`: Always shows original popup window that appears in the center and closes when you select a file
+
+**Auto Mode Customization:**
+
+The `ui_auto_threshold` setting controls the minimum window width (in columns) required to use sidebar mode when `ui_style = "auto"`. You can adjust this based on your preference:
+
+```lua
+harpoon:setup({
+    settings = {
+        ui_style = "auto",
+        ui_auto_threshold = 100, -- use sidebar when window width ≥ 100 columns
+    }
+})
+```
 
 ### Notes
 

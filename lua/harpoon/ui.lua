@@ -33,6 +33,26 @@ local function list_name(list)
     return list and list.name or "nil"
 end
 
+---@param settings HarpoonSettings
+---@return string
+local function get_effective_ui_style(settings)
+    local ui_style = settings.ui_style or "auto"
+
+    if ui_style == "auto" then
+        local threshold = settings.ui_auto_threshold or 120
+        local columns = vim.o.columns
+
+        -- If window is wide enough, use sidebar, otherwise use popup
+        if columns >= threshold then
+            return "sidebar"
+        else
+            return "popup"
+        end
+    end
+
+    return ui_style
+end
+
 HarpoonUI.__index = HarpoonUI
 
 ---@param settings HarpoonSettings
@@ -91,7 +111,7 @@ function HarpoonUI:_create_window(toggle_opts)
     self.bufnr = bufnr
 
     local win_id
-    local ui_style = self.settings.ui_style or "sidebar"
+    local ui_style = get_effective_ui_style(self.settings)
 
     if ui_style == "popup" then
         -- Original popup implementation
@@ -216,7 +236,7 @@ function HarpoonUI:select_menu_item(options)
     )
 
     list = self.active_list
-    local ui_style = self.settings.ui_style or "sidebar"
+    local ui_style = get_effective_ui_style(self.settings)
 
     if ui_style == "popup" then
         self:close_menu()

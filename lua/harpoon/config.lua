@@ -32,13 +32,15 @@ M.DEFAULT_LIST = DEFAULT_LIST
 ---@field save_on_toggle boolean defaults to false
 ---@field sync_on_ui_close? boolean
 ---@field key (fun(): string)
----@field ui_style? string "popup" or "sidebar" - defaults to "sidebar"
+---@field ui_style? string "popup", "sidebar", or "auto" - defaults to "auto"
+---@field ui_auto_threshold? number minimum window width for sidebar in auto mode - defaults to 120
 
 ---@class HarpoonPartialSettings
 ---@field save_on_toggle? boolean
 ---@field sync_on_ui_close? boolean
 ---@field key? (fun(): string)
 ---@field ui_style? string
+---@field ui_auto_threshold? number
 
 ---@class HarpoonConfig
 ---@field default HarpoonPartialConfigItem
@@ -62,7 +64,8 @@ function M.get_default_config()
         settings = {
             save_on_toggle = false,
             sync_on_ui_close = false,
-            ui_style = "sidebar", -- "popup" or "sidebar"
+            ui_style = "auto", -- "popup", "sidebar", or "auto"
+            ui_auto_threshold = 120, -- minimum window width for sidebar in auto mode
 
             key = function()
                 return vim.loop.cwd()

@@ -4,6 +4,26 @@ local M = {}
 
 local HARPOON_MENU = "__harpoon-menu__"
 
+---@param settings HarpoonSettings
+---@return string
+local function get_effective_ui_style(settings)
+    local ui_style = settings.ui_style or "auto"
+
+    if ui_style == "auto" then
+        local threshold = settings.ui_auto_threshold or 120
+        local columns = vim.o.columns
+
+        -- If window is wide enough, use sidebar, otherwise use popup
+        if columns >= threshold then
+            return "sidebar"
+        else
+            return "popup"
+        end
+    end
+
+    return ui_style
+end
+
 -- simple reason here is that if we are deving harpoon, we will create several
 -- ui objects, each with their own buffer, which will cause the name to be
 -- duplicated and then we will get a vim error on nvim_buf_set_name
@@ -25,7 +45,7 @@ function M.run_toggle_command(key)
     local harpoon = require("harpoon")
     harpoon.logger:log("toggle by keymap '" .. key .. "'")
 
-    local ui_style = harpoon.config.settings.ui_style or "sidebar"
+    local ui_style = get_effective_ui_style(harpoon.config.settings)
 
     if ui_style == "popup" then
         harpoon.ui:toggle_quick_menu()

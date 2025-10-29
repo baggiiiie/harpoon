@@ -82,6 +82,23 @@ vim.keymap.set("n", "<C-P>", function() harpoon:list():prev() end)
 vim.keymap.set("n", "<C-N>", function() harpoon:list():next() end)
 ```
 
+### Configuration
+
+You can configure the UI style to choose between the sidebar (new) and popup (original) implementations:
+
+```lua
+local harpoon = require("harpoon")
+harpoon:setup({
+    settings = {
+        ui_style = "sidebar", -- "sidebar" (default) or "popup"
+    }
+})
+```
+
+**UI Styles:**
+- `"sidebar"` (default): Shows harpoon menu as a persistent left-side buffer that acts as padding and centers your main screen
+- `"popup"`: Original popup window that appears in the center and closes when you select a file
+
 ### Notes
 
 - In a harpoon menu

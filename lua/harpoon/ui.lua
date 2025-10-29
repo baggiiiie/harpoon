@@ -24,6 +24,7 @@ end
 ---@field bufnr number
 ---@field settings HarpoonSettings
 ---@field active_list HarpoonList
+---@field width number
 local HarpoonUI = {}
 
 ---@param list HarpoonList
@@ -84,43 +85,61 @@ end
 ---@param toggle_opts HarpoonToggleOptions
 ---@return number,number
 function HarpoonUI:_create_window(toggle_opts)
-    -- local win = vim.api.nvim_list_uis()
-
-    -- if #win > 0 then
-    --     -- no ackshual reason for 0.62569, just looks complicated, and i want
-    --     -- to make my boss think i am smart
-    --     width = math.floor(win[1].width * toggle_opts.ui_width_ratio)
-    -- end
-    --
-    -- if toggle_opts.ui_max_width and width > toggle_opts.ui_max_width then
-    --     width = toggle_opts.ui_max_width
-    -- end
-    --
-    -- NOTE: no need height for our harpoon menu
-    -- local height = toggle_opts.height_in_lines or 8 -- 8 lines is default height
-
     -- NOTE: setting second option to true makes it a scratch buffer
     -- so neovim won't prompt to save it
     local bufnr = vim.api.nvim_create_buf(false, true)
     self.bufnr = bufnr
 
-    local width = math.min(math.floor(vim.o.columns * 0.2), 50)
-    width = math.max(width, 20)
-    self.width = width
+    local win_id
+    local ui_style = self.settings.ui_style or "sidebar"
 
-    local win_id = vim.api.nvim_open_win(bufnr, true, {
-        -- relative = "editor",
-        -- title = toggle_opts.title or "Harpoon",
-        -- title_pos = toggle_opts.title_pos or "left",
-        -- row = math.floor(((vim.o.lines - height) / 2) - 1),
-        -- col = math.floor((vim.o.columns - width) / 2),
-        split = "left",
-        win = -1,
-        width = width,
-        -- height = height,
-        style = "minimal",
-        -- border = toggle_opts.border or "single",
-    })
+    if ui_style == "popup" then
+        -- Original popup implementation
+        local win = vim.api.nvim_list_uis()
+        local width = toggle_opts.ui_fallback_width
+
+        if #win > 0 then
+            width = math.floor(win[1].width * toggle_opts.ui_width_ratio)
+        end
+
+        if toggle_opts.ui_max_width and width > toggle_opts.ui_max_width then
+            width = toggle_opts.ui_max_width
+        end
+
+        local height = toggle_opts.height_in_lines or 8
+
+        win_id = vim.api.nvim_open_win(bufnr, true, {
+            relative = "editor",
+            title = toggle_opts.title or "Harpoon",
+            title_pos = toggle_opts.title_pos or "left",
+            row = math.floor(((vim.o.lines - height) / 2) - 1),
+            col = math.floor((vim.o.columns - width) / 2),
+            width = width,
+            height = height,
+            style = "minimal",
+            border = toggle_opts.border or "single",
+        })
+
+        vim.api.nvim_set_option_value("number", true, {
+            win = win_id,
+        })
+    else
+        -- New sidebar implementation
+        local width = math.min(math.floor(vim.o.columns * 0.2), 50)
+        width = math.max(width, 20)
+        self.width = width
+
+        win_id = vim.api.nvim_open_win(bufnr, true, {
+            split = "left",
+            win = -1,
+            width = width,
+            style = "minimal",
+        })
+
+        vim.api.nvim_set_option_value("number", true, {
+            win = win_id,
+        })
+    end
 
     if win_id == 0 then
         Logger:log(
@@ -130,12 +149,9 @@ function HarpoonUI:_create_window(toggle_opts)
         error("Failed to create window")
     end
 
-    Buffer.setup_autocmds_and_keymaps(bufnr)
+    Buffer.setup_autocmds_and_keymaps(bufnr, ui_style)
 
     self.win_id = win_id
-    vim.api.nvim_set_option_value("number", true, {
-        win = win_id,
-    })
 
     return win_id, bufnr
 end
@@ -200,8 +216,14 @@ function HarpoonUI:select_menu_item(options)
     )
 
     list = self.active_list
-    -- self:close_menu()
-    vim.cmd("wincmd p")
+    local ui_style = self.settings.ui_style or "sidebar"
+
+    if ui_style == "popup" then
+        self:close_menu()
+    else
+        vim.cmd("wincmd p")
+    end
+
     list:select(idx, options)
 end
 

@@ -24,14 +24,23 @@ end
 function M.run_toggle_command(key)
     local harpoon = require("harpoon")
     harpoon.logger:log("toggle by keymap '" .. key .. "'")
-    harpoon.ui:save()
-    vim.cmd("wincmd p")
-    -- harpoon.ui:toggle_quick_menu()
+
+    local ui_style = harpoon.config.settings.ui_style or "sidebar"
+
+    if ui_style == "popup" then
+        harpoon.ui:toggle_quick_menu()
+    else
+        harpoon.ui:save()
+        vim.cmd("wincmd p")
+    end
 end
 
 ---@param bufnr number
-function M.setup_autocmds_and_keymaps(bufnr)
+---@param ui_style string
+function M.setup_autocmds_and_keymaps(bufnr, ui_style)
     local curr_file = vim.api.nvim_buf_get_name(0)
+    ui_style = ui_style or "sidebar"
+
     local cmd = string.format(
         "autocmd Filetype harpoon "
             .. "let path = '%s' | call clearmatches() | "
@@ -50,39 +59,73 @@ function M.setup_autocmds_and_keymaps(bufnr)
     vim.api.nvim_set_option_value("filetype", "harpoon", {
         buf = bufnr,
     })
-    -- NOTE: acwrite is causing error upon `:qa`
-    -- vim.api.nvim_set_option_value("buftype", "acwrite", { buf = bufnr })
-    vim.keymap.set("n", "q", function()
-        require("harpoon").ui:save()
-        vim.cmd("q")
-    end, { buffer = bufnr, silent = true })
 
-    vim.keymap.set("n", "<Esc>", function()
-        M.run_toggle_command("Esc")
-    end, { buffer = bufnr, silent = true })
+    if ui_style == "popup" then
+        -- Original popup behavior
+        vim.api.nvim_set_option_value("buftype", "acwrite", { buf = bufnr })
+
+        vim.keymap.set("n", "q", function()
+            M.run_toggle_command("q")
+        end, { buffer = bufnr, silent = true })
+
+        vim.keymap.set("n", "<Esc>", function()
+            M.run_toggle_command("Esc")
+        end, { buffer = bufnr, silent = true })
+
+        vim.api.nvim_create_autocmd({ "BufWriteCmd" }, {
+            group = HarpoonGroup,
+            buffer = bufnr,
+            callback = function()
+                require("harpoon").ui:save()
+                vim.schedule(function()
+                    require("harpoon").logger:log("toggle by BufWriteCmd")
+                    require("harpoon").ui:toggle_quick_menu()
+                end)
+            end,
+        })
+
+        vim.api.nvim_create_autocmd({ "BufLeave" }, {
+            group = HarpoonGroup,
+            buffer = bufnr,
+            callback = function()
+                require("harpoon").logger:log("toggle by BufLeave")
+                require("harpoon").ui:toggle_quick_menu()
+            end,
+        })
+    else
+        -- New sidebar behavior
+        vim.keymap.set("n", "q", function()
+            require("harpoon").ui:save()
+            vim.cmd("q")
+        end, { buffer = bufnr, silent = true })
+
+        vim.keymap.set("n", "<Esc>", function()
+            M.run_toggle_command("Esc")
+        end, { buffer = bufnr, silent = true })
+
+        vim.api.nvim_create_autocmd({ "QuitPre", "VimLeave", "ExitPre" }, {
+            group = HarpoonGroup,
+            buffer = bufnr,
+            callback = function()
+                require("harpoon").logger:log("toggle by BufLeave")
+                require("harpoon").ui:save()
+                require("harpoon").ui:close_menu()
+            end,
+        })
+
+        vim.api.nvim_create_autocmd({ "BufLeave" }, {
+            group = HarpoonGroup,
+            buffer = bufnr,
+            callback = function()
+                require("harpoon").logger:log("toggle by BufLeave")
+                require("harpoon").ui:save()
+            end,
+        })
+    end
 
     vim.keymap.set("n", "<CR>", function()
         M.run_select_command()
     end, { buffer = bufnr, silent = true })
-
-    vim.api.nvim_create_autocmd({ "QuitPre", "VimLeave", "ExitPre" }, {
-        group = HarpoonGroup,
-        buffer = bufnr,
-        callback = function()
-            require("harpoon").logger:log("toggle by BufLeave")
-            require("harpoon").ui:save()
-            require("harpoon").ui:close_menu()
-        end,
-    })
-
-    vim.api.nvim_create_autocmd({ "BufLeave" }, {
-        group = HarpoonGroup,
-        buffer = bufnr,
-        callback = function()
-            require("harpoon").logger:log("toggle by BufLeave")
-            require("harpoon").ui:save()
-        end,
-    })
 end
 
 ---@param bufnr number

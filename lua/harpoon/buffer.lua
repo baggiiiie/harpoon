@@ -146,6 +146,10 @@ function M.setup_autocmds_and_keymaps(bufnr, ui_style)
     vim.keymap.set("n", "<CR>", function()
         M.run_select_command()
     end, { buffer = bufnr, silent = true })
+
+    -- Disable ctrl-i and ctrl-o (jumplist navigation) in harpoon menu
+    vim.keymap.set("n", "<C-i>", "<nop>", { buffer = bufnr, silent = true })
+    vim.keymap.set("n", "<C-o>", "<nop>", { buffer = bufnr, silent = true })
 end
 
 ---@param bufnr number

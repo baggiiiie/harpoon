@@ -122,7 +122,9 @@ describe("harpoon", function()
     it(
         "closing toggle_quick_menu with save_on_toggle should save contents",
         function()
-            harpoon:setup({ settings = { save_on_toggle = true } })
+            harpoon:setup({
+                settings = { save_on_toggle = true, ui_style = "popup" },
+            })
             local list = harpoon:list()
             local created_files = utils.fill_list_with_files(3, list)
 

@@ -58,6 +58,7 @@ function M.before_each(name)
                 key = function()
                     return "testies"
                 end,
+                ui_style = "popup", -- Explicitly use popup mode for tests
             },
         })
     end

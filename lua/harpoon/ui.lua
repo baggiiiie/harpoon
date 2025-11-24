@@ -25,6 +25,10 @@ end
 ---@field settings HarpoonSettings
 ---@field active_list HarpoonList
 ---@field width number
+---@field height number
+---@field auto_closed boolean
+---@field restore_on_win_close boolean
+---@field initial_win_config table
 local HarpoonUI = {}
 
 ---@param list HarpoonList
@@ -63,15 +67,28 @@ function HarpoonUI:new(settings)
         bufnr = nil,
         active_list = nil,
         settings = settings,
+        auto_closed = false,
+        restore_on_win_close = false,
+        initial_win_config = nil,
+        width = nil,
+        height = nil,
     }, self)
 end
 
-function HarpoonUI:close_menu()
+---@param auto_close? boolean
+function HarpoonUI:close_menu(auto_close)
     if self.closing then
         return
     end
 
     self.closing = true
+
+    -- Track if this was an auto-close
+    if auto_close then
+        self.auto_closed = true
+        self.restore_on_win_close = true
+    end
+
     Logger:log(
         "ui#close_menu name: ",
         list_name(self.active_list),
@@ -79,8 +96,12 @@ function HarpoonUI:close_menu()
         {
             win = self.win_id,
             bufnr = self.bufnr,
+            auto_close = auto_close,
         }
     )
+
+    -- Remove window management autocommands
+    pcall(vim.api.nvim_del_augroup_by_name, "HarpoonWindowManagement")
 
     if self.bufnr ~= nil and vim.api.nvim_buf_is_valid(self.bufnr) then
         -- vim.api.nvim_buf_call(self.bufnr, function()
@@ -93,9 +114,15 @@ function HarpoonUI:close_menu()
         vim.api.nvim_win_close(self.win_id, true)
     end
 
-    self.active_list = nil
+    if not auto_close then
+        self.active_list = nil
+        self.auto_closed = false
+        self.restore_on_win_close = false
+    end
+
     self.win_id = nil
     self.bufnr = nil
+    self.initial_win_config = nil
 
     self.closing = false
 end
@@ -128,7 +155,11 @@ function HarpoonUI:_create_window(toggle_opts)
 
         local height = toggle_opts.height_in_lines or 8
 
-        win_id = vim.api.nvim_open_win(bufnr, true, {
+        -- Store initial dimensions
+        self.width = width
+        self.height = height
+
+        local win_config = {
             relative = "editor",
             title = toggle_opts.title or "Harpoon",
             title_pos = toggle_opts.title_pos or "left",
@@ -138,7 +169,12 @@ function HarpoonUI:_create_window(toggle_opts)
             height = height,
             style = "minimal",
             border = toggle_opts.border or "single",
-        })
+        }
+
+        win_id = vim.api.nvim_open_win(bufnr, true, win_config)
+
+        -- Store the initial window configuration
+        self.initial_win_config = win_config
 
         vim.api.nvim_set_option_value("number", true, {
             win = win_id,
@@ -173,7 +209,151 @@ function HarpoonUI:_create_window(toggle_opts)
 
     self.win_id = win_id
 
+    -- Setup window management autocommands to handle editor window changes
+    self:_setup_window_management()
+
     return win_id, bufnr
+end
+
+--- Helper function to count non-harpoon editor windows
+---@return number
+function HarpoonUI:_count_editor_windows()
+    local count = 0
+    local wins = vim.api.nvim_list_wins()
+
+    for _, win in ipairs(wins) do
+        if vim.api.nvim_win_is_valid(win) then
+            local buf = vim.api.nvim_win_get_buf(win)
+            local buftype = vim.api.nvim_get_option_value("buftype", { buf = buf })
+            local filetype = vim.api.nvim_get_option_value("filetype", { buf = buf })
+
+            -- Count only regular editor windows (not harpoon, not special buffers)
+            if buftype == "" and filetype ~= "harpoon" and win ~= self.win_id then
+                count = count + 1
+            end
+        end
+    end
+
+    return count
+end
+
+--- Setup autocommands for window management
+function HarpoonUI:_setup_window_management()
+    local ui_style = get_effective_ui_style(self.settings)
+
+    -- Create autocommand group for window management
+    local group = vim.api.nvim_create_augroup("HarpoonWindowManagement", { clear = true })
+
+    -- Prevent window resize
+    vim.api.nvim_create_autocmd({ "WinResized", "VimResized" }, {
+        group = group,
+        callback = function()
+            if not self.win_id or not vim.api.nvim_win_is_valid(self.win_id) then
+                return
+            end
+
+            if ui_style == "popup" and self.initial_win_config then
+                -- Restore original size and position for popup
+                pcall(vim.api.nvim_win_set_config, self.win_id, {
+                    relative = "editor",
+                    row = math.floor(((vim.o.lines - self.height) / 2) - 1),
+                    col = math.floor((vim.o.columns - self.width) / 2),
+                    width = self.width,
+                    height = self.height,
+                })
+            else
+                -- Restore original width for sidebar
+                pcall(vim.api.nvim_win_set_width, self.win_id, self.width)
+            end
+        end,
+    })
+
+    -- Prevent WinScrolled from changing window size
+    vim.api.nvim_create_autocmd({ "WinScrolled" }, {
+        group = group,
+        callback = function()
+            if not self.win_id or not vim.api.nvim_win_is_valid(self.win_id) then
+                return
+            end
+
+            -- Ensure width doesn't change
+            local current_width = vim.api.nvim_win_get_width(self.win_id)
+            if current_width ~= self.width then
+                pcall(vim.api.nvim_win_set_width, self.win_id, self.width)
+            end
+
+            -- For popup, also ensure height doesn't change
+            if ui_style == "popup" then
+                local current_height = vim.api.nvim_win_get_height(self.win_id)
+                if current_height ~= self.height then
+                    pcall(vim.api.nvim_win_set_height, self.win_id, self.height)
+                end
+            end
+        end,
+    })
+
+    -- Lock window options to prevent accidental resizing
+    if self.win_id and vim.api.nvim_win_is_valid(self.win_id) then
+        pcall(vim.api.nvim_set_option_value, "winfixwidth", true, { win = self.win_id })
+        if ui_style == "popup" then
+            pcall(vim.api.nvim_set_option_value, "winfixheight", true, { win = self.win_id })
+        end
+    end
+
+    -- Auto-close/reopen on window open/close
+    vim.api.nvim_create_autocmd({ "WinNew", "WinClosed" }, {
+        group = group,
+        callback = function(ev)
+            if not self.win_id or not vim.api.nvim_win_is_valid(self.win_id) then
+                return
+            end
+
+            -- Defer to allow window state to stabilize
+            vim.schedule(function()
+                local editor_count = self:_count_editor_windows()
+
+                Logger:log(
+                    "ui#window_management event:",
+                    ev.event,
+                    "editor_windows:",
+                    editor_count,
+                    "auto_closed:",
+                    self.auto_closed
+                )
+
+                if ev.event == "WinNew" then
+                    -- Another window opened - auto-close harpoon if not already auto-closed
+                    if editor_count > 0 and not self.auto_closed then
+                        self:close_menu(true)
+                    end
+                elseif ev.event == "WinClosed" then
+                    -- Window closed - reopen harpoon if it was auto-closed
+                    if editor_count == 0 and self.restore_on_win_close and self.active_list then
+                        -- Reset flags first
+                        self.auto_closed = false
+                        self.restore_on_win_close = false
+
+                        -- Reopen the menu
+                        local opts = toggle_config()
+                        local win_id, bufnr = self:_create_window(opts)
+
+                        self.win_id = win_id
+                        self.bufnr = bufnr
+
+                        local contents = self.active_list:display()
+                        vim.api.nvim_buf_set_lines(self.bufnr, 0, -1, false, contents)
+
+                        Extensions.extensions:emit(Extensions.event_names.UI_CREATE, {
+                            win_id = win_id,
+                            bufnr = bufnr,
+                            current_file = vim.api.nvim_buf_get_name(0),
+                            contents = contents,
+                        })
+                    end
+                end
+            end)
+        end,
+    })
 end
 
 ---@param list? HarpoonList

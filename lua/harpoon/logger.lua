@@ -34,6 +34,8 @@ function HarpoonLog:log(...)
         local item = select(i, ...)
         if type(item) == "table" then
             item = vim.inspect(item)
+        else
+            item = tostring(item)
         end
         table.insert(processed, item)
     end

@@ -25,6 +25,7 @@ end
 ---@field settings HarpoonSettings
 ---@field active_list HarpoonList
 ---@field width number
+---@field truncated_to_original table<string, string>
 local HarpoonUI = {}
 
 ---@param list HarpoonList
@@ -53,6 +54,33 @@ local function get_effective_ui_style(settings)
     return ui_style
 end
 
+---Truncates a filename to fit within the specified width
+---@param str string the filename to truncate
+---@param width number the maximum width
+---@return string the truncated filename
+local function truncate_filename(str, width)
+    -- Account for line numbers (typically 2-3 digits + space)
+    local effective_width = width - 4
+
+    if string.len(str) <= effective_width then
+        return str
+    end
+
+    -- Use "..." as ellipsis indicator
+    local ellipsis = "..."
+    local ellipsis_len = string.len(ellipsis)
+
+    -- Show the end of the path (most relevant part)
+    local tail_len = effective_width - ellipsis_len
+    if tail_len > 0 then
+        local tail = str:sub(-tail_len)
+        return ellipsis .. tail
+    end
+
+    -- If width is too small, just show what we can
+    return str:sub(1, effective_width)
+end
+
 HarpoonUI.__index = HarpoonUI
 
 ---@param settings HarpoonSettings
@@ -63,6 +91,7 @@ function HarpoonUI:new(settings)
         bufnr = nil,
         active_list = nil,
         settings = settings,
+        truncated_to_original = {},
     }, self)
 end
 
@@ -96,6 +125,7 @@ function HarpoonUI:close_menu()
     self.active_list = nil
     self.win_id = nil
     self.bufnr = nil
+    self.truncated_to_original = {}
 
     self.closing = false
 end
@@ -200,6 +230,22 @@ function HarpoonUI:toggle_quick_menu(list, opts)
     self.active_list = list
 
     local contents = self.active_list:display()
+    local ui_style = get_effective_ui_style(self.settings)
+
+    -- Truncate filenames for sidebar mode
+    if ui_style == "sidebar" and self.width then
+        self.truncated_to_original = {}
+        local truncated_contents = {}
+        for i, line in ipairs(contents) do
+            local truncated = truncate_filename(line, self.width)
+            truncated_contents[i] = truncated
+            -- Store mapping for non-empty lines
+            if line ~= "" then
+                self.truncated_to_original[truncated] = line
+            end
+        end
+        contents = truncated_contents
+    end
 
     vim.api.nvim_buf_set_lines(self.bufnr, 0, -1, false, contents)
 
@@ -214,6 +260,22 @@ end
 function HarpoonUI:_get_processed_ui_contents()
     local list = Buffer.get_contents(self.bufnr)
     local length = #list
+
+    -- Restore original filenames from truncated versions
+    if next(self.truncated_to_original) ~= nil then
+        local restored_list = {}
+        for i, line in ipairs(list) do
+            -- Check if this line was truncated and restore it
+            if self.truncated_to_original[line] then
+                restored_list[i] = self.truncated_to_original[line]
+            else
+                -- Keep edited/new lines as-is
+                restored_list[i] = line
+            end
+        end
+        return restored_list, length
+    end
+
     return list, length
 end
 
@@ -267,6 +329,24 @@ function HarpoonUI:refresh(contents)
     if self.bufnr == nil or not vim.api.nvim_buf_is_valid(self.bufnr) then
         return
     end
+
+    local ui_style = get_effective_ui_style(self.settings)
+
+    -- Truncate filenames for sidebar mode
+    if ui_style == "sidebar" and self.width then
+        self.truncated_to_original = {}
+        local truncated_contents = {}
+        for i, line in ipairs(contents) do
+            local truncated = truncate_filename(line, self.width)
+            truncated_contents[i] = truncated
+            -- Store mapping for non-empty lines
+            if line ~= "" then
+                self.truncated_to_original[truncated] = line
+            end
+        end
+        contents = truncated_contents
+    end
+
     vim.api.nvim_buf_set_lines(self.bufnr, 0, -1, true, contents)
 end
 

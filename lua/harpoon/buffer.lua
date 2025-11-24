@@ -146,6 +146,38 @@ function M.setup_autocmds_and_keymaps(bufnr, ui_style)
     vim.keymap.set("n", "<CR>", function()
         M.run_select_command()
     end, { buffer = bufnr, silent = true })
+
+    -- Disable buffer-related commands in harpoon menu (only window commands allowed)
+    vim.keymap.set("n", "<C-i>", "<nop>", { buffer = bufnr, silent = true }) -- jumplist forward
+    vim.keymap.set("n", "<C-o>", "<nop>", { buffer = bufnr, silent = true }) -- jumplist back
+    vim.keymap.set("n", "<C-^>", "<nop>", { buffer = bufnr, silent = true }) -- alternate buffer
+    vim.keymap.set("n", "<C-6>", "<nop>", { buffer = bufnr, silent = true }) -- alternate buffer (alias)
+
+    -- Disable buffer commands like :bnext, :bprev, etc.
+    vim.api.nvim_buf_call(bufnr, function()
+        -- Navigation commands
+        vim.cmd("cabbrev <buffer> bnext <nop>")
+        vim.cmd("cabbrev <buffer> bn <nop>")
+        vim.cmd("cabbrev <buffer> bprevious <nop>")
+        vim.cmd("cabbrev <buffer> bprev <nop>")
+        vim.cmd("cabbrev <buffer> bp <nop>")
+        vim.cmd("cabbrev <buffer> bfirst <nop>")
+        vim.cmd("cabbrev <buffer> bf <nop>")
+        vim.cmd("cabbrev <buffer> brewind <nop>")
+        vim.cmd("cabbrev <buffer> br <nop>")
+        vim.cmd("cabbrev <buffer> blast <nop>")
+        vim.cmd("cabbrev <buffer> bl <nop>")
+        vim.cmd("cabbrev <buffer> buffer <nop>")
+        vim.cmd("cabbrev <buffer> b <nop>")
+
+        -- Modification commands
+        vim.cmd("cabbrev <buffer> bdelete <nop>")
+        vim.cmd("cabbrev <buffer> bd <nop>")
+        vim.cmd("cabbrev <buffer> bwipeout <nop>")
+        vim.cmd("cabbrev <buffer> bw <nop>")
+        vim.cmd("cabbrev <buffer> bunload <nop>")
+        vim.cmd("cabbrev <buffer> bun <nop>")
+    end)
 end
 
 ---@param bufnr number
